@@ -31,4 +31,4 @@ See the [command.md](command.md) file for details
 Saved weights in ```./saved_weights/ ``` under current directory
 
 ## License
-See the [LICENSE.md](LICENSE.md) file for details
+See the [License.md](License.md) file for details
