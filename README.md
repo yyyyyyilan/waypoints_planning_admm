@@ -19,7 +19,7 @@ Pytorch 1.1.0
 ```
 
 ## Training and Evaluation
-See the [command.md] file for details
+See the [command.md](command.md) file for details
 
 ## Weights
 Saved weights in ```./saved_weights/ ``` under current directory
