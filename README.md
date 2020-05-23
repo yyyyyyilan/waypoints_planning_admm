@@ -1,5 +1,5 @@
 # waypoints_planning_admm
-A deep Q-network to plan waypoints for UAVs to avoid obstacles in indoor environment. 
+A deep Q-network to plan waypoints for UAVs to avoid obstacles in indoor environment. Alternating Direction Method of Multipliers (ADMM) based weight pruning for the C3D network.
 
 The state can be encoded into two different structures: 1D vector or 3D block.
 * The 1D vector is composed of normalized distance difference of each obstacle to the destination point with the OBSTACLE_REWARD, followed by distance difference between current position with destination point with GOAL_REWARD. 
@@ -15,17 +15,11 @@ Packages you need to install the software and how to install them
 ```
 numpy 1.16.4
 Pytorch 1.1.0
+
 ```
 
-## Training 
-```
-python3 main_dqn_v3.py --mode [mode] --lr [lr] --enable-epsilon
-```
-
-## Evaluation
-```
-python3 main_dqn_v3.py --mode [mode] --lr [lr] --eval
-```
+## Training and Evaluation
+See the [command.md] file for details
 
 ## Weights
 Saved weights in ```./saved_weights/ ``` under current directory
