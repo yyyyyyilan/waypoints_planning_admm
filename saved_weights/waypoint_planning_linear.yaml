@@ -1,0 +1,4 @@
+prune_ratios:
+   fc1.weight:  
+     0.5
+
