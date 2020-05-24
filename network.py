@@ -53,7 +53,7 @@ class ConvNetwork(nn.Module):
         x_state = self.fc1(x_state_fe.view(state.shape[0], -1))
         x_state = self.relu(x_state)
         x_loc = self.fc2(loc)
-        x_loc = self.relu()
+        x_loc = self.relu(x_loc)
         x = x_state + x_loc
         out = self.fc_out(x)
         return out
