@@ -146,9 +146,11 @@ class Trainer(object):
                 rewards = []  
                 success = 0
                 self.agent.load_admm = False
-                end_time = time.time()
                 while (not is_done) and (steps <= self.args.max_steps):
+                    end_time = time.time()
                     action_curt = self.agent.act(state_curt, epsilon=0.0)
+                    eval_time = time.time() - end_time
+                    batch_time.update(eval_time)
                     actions.append(action_curt)
                     reward_curt, is_done, reward_info = self.env.step(action_curt)
                     num_obst += int(reward_info['is_obst'])
@@ -161,9 +163,6 @@ class Trainer(object):
                     episode_reward += reward_curt
                     rewards.append(reward_curt)
                     steps += 1     
-                    eval_time = end = time.time() - end_time
-                    batch_time.update(eval_time)
-                    end_time = time.time()
                 # print(actions)
                 print('[Pretrained]  [{0:05d}] step: {1:03d}, reward: {2:.04f}, num_obst: {3:03d}, is_goal: {4}, time: {5:03f}, start: {6}, target: {7}'.format(
                     episode,
