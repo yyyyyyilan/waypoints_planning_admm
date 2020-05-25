@@ -8,6 +8,7 @@ import math
 
 from environment_v4 import Env
 from agent import Agent
+from utils import *
 
 class Trainer(object):
     """waypoints planning trainer is defined here
@@ -131,6 +132,9 @@ class Trainer(object):
                 admm_env = Env(self.args)
                 admm_env.copy(self.env)
 
+            batch_time = AverageMeter()
+            admm_batch_time = AverageMeter()
+
             #evaluate pretrained model performance
             if self.args.load_pretrained:
                 episode_reward = 0
@@ -142,6 +146,7 @@ class Trainer(object):
                 rewards = []  
                 success = 0
                 self.agent.load_admm = False
+                end_time = time.time()
                 while (not is_done) and (steps <= self.args.max_steps):
                     action_curt = self.agent.act(state_curt, epsilon=0.0)
                     actions.append(action_curt)
@@ -156,13 +161,17 @@ class Trainer(object):
                     episode_reward += reward_curt
                     rewards.append(reward_curt)
                     steps += 1     
+                    eval_time = end = time.time() - end_time
+                    batch_time.update(eval_time)
+                    end_time = time.time()
                 # print(actions)
-                print('[Pretrained]  [{0:05d}] step: {1:03d}, reward: {2:.04f}, num_obst: {3:03d}, is_goal: {4}, start: {5}, target: {6}'.format(
+                print('[Pretrained]  [{0:05d}] step: {1:03d}, reward: {2:.04f}, num_obst: {3:03d}, is_goal: {4}, time: {5:03f}, start: {6}, target: {7}'.format(
                     episode,
                     steps - 1,
                     episode_reward,
                     num_obst,
                     is_goal,
+                    batch_time.avg,
                     self.env.objs_info['drone_pos_start'],
                     self.env.objs_info['goal']
                 ))
@@ -179,6 +188,7 @@ class Trainer(object):
                 admm_rewards = []
                 admm_success = 0
                 admm_state_curt = admm_env.get_state()
+                end_time = time.time()
                 while (not admm_is_done) and (admm_steps <= self.args.max_steps):
                     admm_action_curt = self.agent.act(admm_state_curt, epsilon=0.0)
                     admm_actions.append(admm_action_curt)
@@ -193,13 +203,17 @@ class Trainer(object):
                     admm_episode_reward += admm_reward_curt
                     admm_rewards.append(admm_reward_curt)
                     admm_steps += 1
+                    eval_time = end = time.time() - end_time
+                    admm_batch_time.update(eval_time)
+                    end_time = time.time()
                 # print(admm_actions)
-                print('[ADMM_Pruned] [{0:05d}] step: {1:03d}, reward: {2:.04f}, num_obst: {3:03d}, is_goal: {4}, start: {5}, target: {6}'.format(
+                print('[ADMM_Pruned] [{0:05d}] step: {1:03d}, reward: {2:.04f}, num_obst: {3:03d}, is_goal: {4}, time: {5:03f}, start: {6}, target: {7}'.format(
                     episode,
                     admm_steps - 1,
                     admm_episode_reward,
                     admm_num_obst,
                     admm_is_goal,
+                    admm_batch_time.avg,
                     admm_env.objs_info['drone_pos_start'],
                     admm_env.objs_info['goal']
                 ))
