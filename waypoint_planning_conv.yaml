@@ -1,5 +1,3 @@
 prune_ratios:
-  #  state_cnn.3.weight:  
-  #    0.5
-   state_model.0.weight:  
+   conv3.weight:  
      0.5
