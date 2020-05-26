@@ -1,3 +1,5 @@
 prune_ratios:
    conv3.weight:  
      0.5
+   conv5.weight:  
+     0.5
