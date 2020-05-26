@@ -211,3 +211,5 @@ def admm_adjust_learning_rate(optimizer, epoch, args):
         lr = args.lr * (0.5 ** (admm_epoch_offset // admm_step))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
+
+
