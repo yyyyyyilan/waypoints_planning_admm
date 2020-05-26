@@ -187,9 +187,12 @@ class Trainer(object):
                 admm_rewards = []
                 admm_success = 0
                 admm_state_curt = admm_env.get_state()
-                end_time = time.time()
+                
                 while (not admm_is_done) and (admm_steps <= self.args.max_steps):
+                    end_time = time.time()
                     admm_action_curt = self.agent.act(admm_state_curt, epsilon=0.0)
+                    eval_time = time.time() - end_time
+                    admm_batch_time.update(eval_time)
                     admm_actions.append(admm_action_curt)
                     admm_reward_curt, admm_is_done, admm_reward_info = admm_env.step(admm_action_curt)
                     admm_num_obst += int(admm_reward_info['is_obst'])
@@ -202,9 +205,6 @@ class Trainer(object):
                     admm_episode_reward += admm_reward_curt
                     admm_rewards.append(admm_reward_curt)
                     admm_steps += 1
-                    eval_time = end = time.time() - end_time
-                    admm_batch_time.update(eval_time)
-                    end_time = time.time()
                 # print(admm_actions)
                 print('[ADMM_Pruned] [{0:05d}] step: {1:03d}, reward: {2:.04f}, num_obst: {3:03d}, is_goal: {4}, time: {5:03f}, start: {6}, target: {7}'.format(
                     episode,

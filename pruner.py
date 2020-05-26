@@ -322,7 +322,7 @@ class Pruner(object):
             steps = 0
             num_obst = 0
             # Intialize environment
-            epoch_num_obst = 5 #random.randint(5, 10)
+            epoch_num_obst = random.randint(0, 10)
             self.env.reset(epoch_num_obst)
             state_curt = self.env.get_state()
             while (not is_done) and (steps <= self.args.max_steps):
@@ -380,7 +380,7 @@ class Pruner(object):
             steps = 0
             num_obst = 0
             # Intialize environment
-            num_obst = 5 #random.randint(5, 10)
+            num_obst = random.randint(0, 10)
             self.env.reset(num_obst)
             state_curt = self.env.get_state()
             while (not is_done) and (steps <= self.args.max_steps):
