@@ -12,6 +12,7 @@ from replaybuffer import ReplayBuffer
 from agent import Agent
 import admm
 from utils import *
+from generate_trajectory import traj_mwpts
 
 import pdb
 
@@ -325,6 +326,11 @@ class Pruner(object):
             epoch_num_obst = random.randint(0, 10)
             self.env.reset(epoch_num_obst)
             state_curt = self.env.get_state()
+            if self.args.thrust:
+                # Initialize uav configuration
+                velocity_curt = np.array((0, 0, 0.25))
+                acceler_curt = np.array((0, 0, 0))
+                gerk_curt = np.array((0, 0, 0))
             while (not is_done) and (steps <= self.args.max_steps):
                 action_curt = self.agent.act(state_curt, epsilon=0.0)
                 reward_curt, is_done, reward_info = self.env.step(action_curt)
@@ -334,6 +340,21 @@ class Pruner(object):
                     if num_obst == 0:
                         success = success + 1
                 state_next = self.env.get_state()
+                #calculate force reward
+                if self.args.thrust:
+                    start_pos = state_curt[1]
+                    end_pos = state_next[1]
+                    start_end = hstack((np.array([start_pos]).T, np.array([end_pos]).T))
+                    # t = array([steps * 6, (steps + 1) * 6])
+                    t = array([0, 6])
+                    path, f, norm_f, velocity_next, acceler_next, gerk_next = \
+                            traj_mwpts(t, start_end, np.array([velocity_curt]).T, \
+                            np.array([acceler_curt]).T, np.array([gerk_curt]).T)
+                    velocity_curt = velocity_next
+                    acceler_curt = acceler_next
+                    gerk_curt = gerk_next
+                    force_reward = 1 / (1 + math.exp(-1 * np.sum(norm_f)/norm_f.shape[1])) / self.args.grid_resolution / self.args.grid_size
+                    reward_curt -= force_reward
                 state_curt = state_next
                 episode_reward += reward_curt
                 steps += 1
@@ -383,6 +404,12 @@ class Pruner(object):
             num_obst = random.randint(0, 10)
             self.env.reset(num_obst)
             state_curt = self.env.get_state()
+            if self.args.thrust:
+                # Initialize uav configuration
+                velocity_curt = np.array((0, 0, 0.25))
+                acceler_curt = np.array((0, 0, 0))
+                gerk_curt = np.array((0, 0, 0))
+
             while (not is_done) and (steps <= self.args.max_steps):
                 action_curt = self.agent.act(state_curt, epsilon=0.0)
                 reward_curt, is_done, reward_info = self.env.step(action_curt)
@@ -390,6 +417,21 @@ class Pruner(object):
                 if reward_info['is_goal']:
                     is_goal = True
                 state_next = self.env.get_state()
+                # calculate force reward
+                if self.args.thrust:
+                    start_pos = state_curt[1]
+                    end_pos = state_next[1]
+                    start_end = hstack((np.array([start_pos]).T, np.array([end_pos]).T))
+                    # t = array([steps * 6, (steps + 1) * 6])
+                    t = array([0, 6])
+                    path, f, norm_f, velocity_next, acceler_next, gerk_next = \
+                                    traj_mwpts(t, start_end, np.array([velocity_curt]).T, np.array([acceler_curt]).T, np.array([gerk_curt]).T)
+                    velocity_curt = velocity_next
+                    acceler_curt = acceler_next
+                    gerk_curt = gerk_next
+                    force_reward = 1 / (1 + math.exp(-1 * np.sum(norm_f)/norm_f.shape[1])) / self.args.grid_resolution / self.args.grid_size
+                    reward_curt -= force_reward
+                # save samples
                 self.agent.buffer.add((state_curt, action_curt, reward_curt, state_next, is_done))
                 state_curt = state_next
                 episode_reward += reward_curt
