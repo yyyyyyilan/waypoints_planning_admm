@@ -23,7 +23,8 @@ parser.add_argument("--max-steps", default=200, type=int)
 parser.add_argument("--save-epochs", default=1000, type=int)
 parser.add_argument("--save-weights-dir", default='./saved_weights', type=str)
 parser.add_argument("--load-pretrained", action='store_true')
-parser.add_argument("--target-update", default=100, type=int)
+parser.add_argument("--target-update", default=30, type=int)
+parser.add_argument("--thrust", action='store_true', help='take thrust reward into consideration while training')
 
 """ arguments for pruning 
 """
