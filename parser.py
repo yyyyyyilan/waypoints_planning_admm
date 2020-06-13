@@ -65,3 +65,5 @@ parser.add_argument('--sparsity-type', default='filter', type=str,
                     help='define sparsity_type: [filter, channel, column]')
 parser.add_argument("--load-admm-pruned", action='store_true',
                     help='load admm pruned model weights')
+parser.add_argument('--multi-gpu', action='store_true', default=False,
+                    help='for multi-gpu training')

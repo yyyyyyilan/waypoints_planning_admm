@@ -1,5 +1,6 @@
 import argparse
 import numpy as np
+from numpy import *
 import os
 import sys
 import math
@@ -11,8 +12,8 @@ from environment_v4 import Env
 from replaybuffer import ReplayBuffer
 from agent import Agent
 import admm
+from generate_trajectory_try_2 import traj_mwpts
 from utils import *
-from generate_trajectory import traj_mwpts
 
 import pdb
 
@@ -61,11 +62,14 @@ class Pruner(object):
             current_rho = initial_rho * 10 ** i
             # load pretrained model / resume
             if i == 0 and not self.args.resume:
-                pre_weight_path = os.path.join(self.args.save_weights_dir, 'pretrained', 'saved_weights_{}.pth.tar'.format(self.args.mode))
+                if self.args.combine_progressive:
+                    pre_weight_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}.pth.tar'.format(self.args.mode))
+                else:
+                    pre_weight_path = os.path.join(self.args.save_weights_dir, 'pretrained', 'saved_weights_{}.pth.tar'.format(self.args.mode))
             elif i > 0 and not self.args.resume:
-                pre_weight_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}_{}.pth.tar'.format(self.args.mode, current_rho / 10))
+                pre_weight_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}_{}_{}.pth.tar'.format(self.args.mode, self.args.sparsity_type, current_rho / 10))
             else:
-                pre_weight_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}_{}.pth.tar'.format(self.args.mode, current_rho))
+                pre_weight_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}_{}_{}.pth.tar'.format(self.args.mode, self.args.sparsity_type, current_rho))
             if os.path.isfile(pre_weight_path):
                 print("=> loading checkpoint '{}'".format(pre_weight_path))
                 checkpoint = torch.load(pre_weight_path)
@@ -96,7 +100,7 @@ class Pruner(object):
                 shutil.copy(os.path.join(self.args.config_file + self.args.mode + '.yaml'), \
                     os.path.join(self.args.save_weights_dir, self.args.config_file + self.args.mode + '.yaml'))
 
-            save_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}_{}.pth.tar'.format(self.args.mode, current_rho))
+            save_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}_{}_{}.pth.tar'.format(self.args.mode, self.args.sparsity_type, current_rho))
             for epoch in range(start_epoch, self.args.epochs + 1):
                 print('current rho: {}'.format(current_rho))
                 # admm training 
@@ -135,10 +139,10 @@ class Pruner(object):
            output corresponding sparse network
         """
         if not self.args.resume:
-            load_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}_{}.pth.tar'.format(self.args.mode, initial_rho * 10 ** (self.args.rho_num - 1)))
+            load_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}_{}_{}.pth.tar'.format(self.args.mode, self.args.sparsity_type, initial_rho * 10 ** (self.args.rho_num - 1)))
             print("=> loading checkpoint '{}'".format(load_path))
         else:
-            load_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}_{}rhos.pth.tar'.format(self.args.mode, self.args.rho_num))
+            load_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}_{}_{}rhos.pth.tar'.format(self.args.mode, self.args.sparsity_type, self.args.rho_num))
         
         if os.path.exists(load_path):
             checkpoint = torch.load(load_path)
@@ -172,7 +176,7 @@ class Pruner(object):
         # admm hard prune
         admm.hard_prune(self.args, ADMM, self.agent.model)
         epoch_loss_dict = {}
-        save_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}_{}rhos.pth.tar'.format(self.args.mode, self.args.rho_num))
+        save_path = os.path.join(self.args.save_weights_dir, self.args.mode, 'saved_weights_{}_{}_{}rhos.pth.tar'.format(self.args.mode, self.args.sparsity_type, self.args.rho_num))
         for epoch in range(start_epoch, self.args.epochs + 1):
             idx_loss_dict = self.train(ADMM, optimizer, scheduler, epoch)
             eval_success_rate = self.eval(self.agent.model)
@@ -323,7 +327,7 @@ class Pruner(object):
             steps = 0
             num_obst = 0
             # Intialize environment
-            epoch_num_obst = random.randint(0, 10)
+            epoch_num_obst = random.randint(5, 10)
             self.env.reset(epoch_num_obst)
             state_curt = self.env.get_state()
             if self.args.thrust:
@@ -331,6 +335,7 @@ class Pruner(object):
                 velocity_curt = np.array((0, 0, 0.25))
                 acceler_curt = np.array((0, 0, 0))
                 gerk_curt = np.array((0, 0, 0))
+
             while (not is_done) and (steps <= self.args.max_steps):
                 action_curt = self.agent.act(state_curt, epsilon=0.0)
                 reward_curt, is_done, reward_info = self.env.step(action_curt)
@@ -353,7 +358,8 @@ class Pruner(object):
                     velocity_curt = velocity_next
                     acceler_curt = acceler_next
                     gerk_curt = gerk_next
-                    force_reward = 1 / (1 + math.exp(-1 * np.sum(norm_f)/norm_f.shape[1])) / self.args.grid_resolution / self.args.grid_size
+                    force_reward = 1 / (1 + math.exp(-1 * np.sum(norm_f)/norm_f.shape[1])) \
+                                    / self.args.grid_resolution / self.args.grid_size
                     reward_curt -= force_reward
                 state_curt = state_next
                 episode_reward += reward_curt
@@ -401,7 +407,7 @@ class Pruner(object):
             steps = 0
             num_obst = 0
             # Intialize environment
-            num_obst = random.randint(0, 10)
+            num_obst = random.randint(5, 10)
             self.env.reset(num_obst)
             state_curt = self.env.get_state()
             if self.args.thrust:
@@ -425,11 +431,13 @@ class Pruner(object):
                     # t = array([steps * 6, (steps + 1) * 6])
                     t = array([0, 6])
                     path, f, norm_f, velocity_next, acceler_next, gerk_next = \
-                                    traj_mwpts(t, start_end, np.array([velocity_curt]).T, np.array([acceler_curt]).T, np.array([gerk_curt]).T)
+                                    traj_mwpts(t, start_end, np.array([velocity_curt]).T, \
+                                    np.array([acceler_curt]).T, np.array([gerk_curt]).T)
                     velocity_curt = velocity_next
                     acceler_curt = acceler_next
                     gerk_curt = gerk_next
-                    force_reward = 1 / (1 + math.exp(-1 * np.sum(norm_f)/norm_f.shape[1])) / self.args.grid_resolution / self.args.grid_size
+                    force_reward = 1 / (1 + math.exp(-1 * np.sum(norm_f)/norm_f.shape[1])) \
+                                                    / self.args.grid_resolution / self.args.grid_size
                     reward_curt -= force_reward
                 # save samples
                 self.agent.buffer.add((state_curt, action_curt, reward_curt, state_next, is_done))
